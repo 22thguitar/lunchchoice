@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>랜덤 휠 앱</title>
+    <style>
+        /* 전체 스타일 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        /* 입력 폼 스타일 */
+        .input-group {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        .input-field {
+            display: flex;
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-right: none;
+            border-top-left-radius: 4px;
+            border-bottom-left-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .add-btn {
+            padding: 0.5rem 1rem;
+            background-color: #000;
+            color: white;
+            border: none;
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .delete-btn {
+            padding: 0.5rem 1rem;
+            background-color: #e53e3e;
+            color: white;
+            border: none;
+            border-top-right-radius: 4px;
+            border-bottom-right-radius: 4px;
+            cursor: pointer;
+        }
+        
+        /* 휠 컨테이너 스타일 */
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 1rem;
+        }
+        
+        .pointer {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 20px solid #000;
+            z-index: 10;
+        }
+        
+        .wheel {
+            width: 100%;
+            padding-bottom: 100%; /* 정사각형 비율 유지 */
+            position: relative;
+        }
+        
+        #wheelSVG {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        
+        /* 버튼 스타일 */
+        .spin-btn {
+            padding: 0.5rem 2rem;
+            background-color: #000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        
+        .spin-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* 결과 스타일 */
+        .result {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 1rem;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .result-text {
+            margin-right: 0.5rem;
+        }
+        
+        .result-value {
+            color: #e53e3e;
+        }
+        
+        /* 폭죽 효과 스타일 */
+        .fireworks {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+        
+        .spark {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            opacity: 0;
+            animation: sparkle 1s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+        
+        /* 메뉴 목록 스타일 */
+        .menu-list {
+            display: none;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .menu-list-toggle {
+            background-color: #f3f4f6;
+            padding: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .menu-list-items {
+            margin-top: 0.5rem;
+            padding-left: 1.5rem;
+        }
+        
+        .menu-list-item {
+            margin-bottom: 0.25rem;
+        }
+        
+        .menu-list-item.selected {
+            color: #e53e3e;
+            font-weight: bold;
+        }
+        
+        /* 반응형 스타일 */
+        @media (max-width: 768px) {
+            .input-field {
+                flex-direction: column;
+            }
+            
+            input {
+                width: 100%;
+                border-right: 1px solid #ccc;
+                border-bottom: none;
+                border-radius: 4px 4px 0 0;
+            }
+            
+            .add-btn, .delete-btn {
+                width: 100%;
+                border-radius: 0 0 4px 4px;
+            }
+            
+            .pointer {
+                border-left: 8px solid transparent;
+                border-right: 8px solid transparent;
+                border-top: 16px solid #000;
+            }
+            
+            .spin-btn {
+                width: 100%;
+                padding: 0.75rem;
+            }
+            
+            .result {
+                font-size: 1.25rem;
+            }
+            
+            .menu-list {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="input-group">
+            <div class="input-field">
+                <input type="text" id="newItemInput" placeholder="이름 입력">
+                <button class="add-btn" id="addBtn">추가</button>
+            </div>
+            <div class="input-field">
+                <input type="text" id="deleteItemInput" placeholder="삭제할 메뉴 입력">
+                <button class="delete-btn" id="deleteBtn">삭제</button>
+            </div>
+        </div>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <div class="wheel">
+                <svg id="wheelSVG" viewBox="-150 -150 300 300">
+                    <!-- 휠 내용은 JavaScript에서 생성됩니다 -->
+                </svg>
+            </div>
+        </div>
+        
+        <button class="spin-btn" id="spinBtn">돌려!</button>
+        
+        <div class="result" id="result" style="display: none;">
+            <span class="result-text">선택된 메뉴:</span>
+            <span class="result-value" id="resultValue"></span>
+        </div>
+        
+        <div class="fireworks" id="fireworks"></div>
+        
+        <div class="menu-list">
+            <div class="menu-list-toggle" id="menuListToggle">현재 메뉴 목록 보기</div>
+            <ul class="menu-list-items" id="menuListItems" style="display: none;"></ul>
+        </div>
+    </div>
+
+    <script>
+        // 상태 변수들
+        let items = ['치킨', '치즈', '사과', '콜', '햄버거', '라면', '김밥', '햇반', '피자', '초밥', '떡볶이'];
+        let rotation = 0;
+        let isSpinning = false;
+        let selectedItem = null;
+        let selectedIndex = null;
+        
+        // 색상 배열
+        const colors = [
+            '#9932CC', '#DC143C', '#FF4500', '#FFA500', 
+            '#FFD700', '#32CD32', '#008B8B', '#483D8B'
+        ];
+        
+        // 요소 참조 가져오기
+        const newItemInput = document.getElementById('newItemInput');
+        const deleteItemInput = document.getElementById('deleteItemInput');
+        const addBtn = document.getElementById('addBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const spinBtn = document.getElementById('spinBtn');
+        const wheelSVG = document.getElementById('wheelSVG');
+        const result = document.getElementById('result');
+        const resultValue = document.getElementById('resultValue');
+        const fireworks = document.getElementById('fireworks');
+        const menuListToggle = document.getElementById('menuListToggle');
+        const menuListItems = document.getElementById('menuListItems');
+        
+        // 휠 생성 함수
+        function generateWheel() {
+            // SVG 내용 초기화
+            wheelSVG.innerHTML = '';
+            
+            const total = items.length;
+            const degreesPerItem = 360 / total;
+            
+            items.forEach((item, index) => {
+                const startAngle = index * degreesPerItem;
+                const endAngle = (index + 1) * degreesPerItem;
+                
+                const startRadians = (startAngle * Math.PI) / 180;
+                const endRadians = (endAngle * Math.PI) / 180;
+                
+                const r = 150; // 반지름
+                
+                const x1 = r * Math.sin(startRadians);
+                const y1 = -r * Math.cos(startRadians);
+                const x2 = r * Math.sin(endRadians);
+                const y2 = -r * Math.cos(endRadians);
+                
+                // 텍스트 위치 계산 (각 구역의 중앙)
+                const midAngle = (startAngle + endAngle) / 2;
+                const midRadians = (midAngle * Math.PI) / 180;
+                const textR = r * 0.65; // 텍스트는 중심에서 65% 거리에 배치
+                const textX = textR * Math.sin(midRadians);
+                const textY = -textR * Math.cos(midRadians);
+                
+                const largeArcFlag = degreesPerItem > 180 ? 1 : 0;
+                
+                const pathData = `M 0 0 L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                
+                // 선택된 항목 하이라이트
+                const isSelected = selectedIndex === index && !isSpinning;
+                const fillColor = isSelected 
+                    ? "#FFD700" // 골드 색상으로 하이라이트
+                    : colors[index % colors.length];
+                
+                const strokeWidth = isSelected ? 3 : 1;
+                const strokeColor = isSelected ? "#FF4500" : "#ffffff";
+                
+                // 모바일 환경 확인
+                const isMobile = window.innerWidth < 768;
+                
+                // 모바일 환경에서는 폰트 크기를 조정
+                const fontSize = isMobile 
+                    ? (isSelected ? 14 : 12) 
+                    : (isSelected ? 16 : 14);
+                
+                // 텍스트가 너무 길면 줄임
+                let displayText = item;
+                if (isMobile && item.length > 6) {
+                    displayText = item.substring(0, 5) + '..';
+                }
+                
+                // 경로 요소 생성
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', fillColor);
+                path.setAttribute('stroke', strokeColor);
+                path.setAttribute('stroke-width', strokeWidth);
+                
+                // 텍스트 요소 생성
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', textX);
+                text.setAttribute('y', textY);
+                text.setAttribute('fill', isSelected ? "#000000" : "#ffffff");
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('font-size', fontSize);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('alignment-baseline', 'middle');
+                text.setAttribute('transform', `rotate(${midAngle}, ${textX}, ${textY})`);
+                text.textContent = displayText;
+                
+                // SVG에 요소 추가
+                wheelSVG.appendChild(path);
+                wheelSVG.appendChild(text);
+            });
+            
+            // 메뉴 리스트 업데이트
+            updateMenuList();
+        }
+        
+        // 메뉴 리스트 업데이트 함수
+        function updateMenuList() {
+            menuListItems.innerHTML = '';
+            
+            items.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'menu-list-item';
+                li.textContent = item;
+                
+                if (selectedIndex === index) {
+                    li.classList.add('selected');
+                }
+                
+                menuListItems.appendChild(li);
+            });
+        }
+        
+        // 메뉴 추가 함수
+        function addItem() {
+            const newItem = newItemInput.value.trim();
+            
+            if (newItem !== '') {
+                items.push(newItem);
+                newItemInput.value = '';
+                
+                generateWheel();
+            }
+        }
+        
+        // 메뉴 삭제 함수
+        function deleteItem() {
+            const itemToDelete = deleteItemInput.value.trim();
+            
+            if (itemToDelete !== '') {
+                const initialLength = items.length;
+                items = items.filter(item => item !== itemToDelete);
+                
+                if (items.length === initialLength) {
+                    alert('해당 메뉴가 목록에 없습니다.');
+                } else {
+                    deleteItemInput.value = '';
+                    
+                    // 선택된 항목이 삭제되었는지 확인
+                    if (selectedItem === itemToDelete) {
+                        selectedItem = null;
+                        selectedIndex = null;
+                        result.style.display = 'none';
+                    }
+                    
+                    generateWheel();
+                }
+            }
+        }
+        
+        // 휠 회전 함수
+        function spinWheel() {
+            if (isSpinning) return;
+            
+            isSpinning = true;
+            spinBtn.disabled = true;
+            spinBtn.textContent = '돌리는 중...';
+            
+            selectedItem = null;
+            selectedIndex = null;
+            result.style.display = 'none';
+            clearFireworks();
+            
+            // 랜덤한 회전 각도 (5-10 회전)
+            const spinAngle = 1800 + Math.random() * 1800;
+            // 회전각을 0에서 시작하는 새로운 각도로 설정
+            rotation = spinAngle;
+            
+            // 휠 회전 애니메이션 적용
+            wheelSVG.style.transform = `rotate(${rotation}deg)`;
+            
+            // 회전이 끝난 후 선택된 항목 계산
+            setTimeout(() => {
+                const degreesPerItem = 360 / items.length;
+                // 포인터는 위에 있으므로 회전 각도에서 항목을 계산
+                const normalizedRotation = rotation % 360;
+                // 각도에서 선택된 항목의 인덱스 계산 (시계 방향으로 회전하므로 특별한 계산 필요)
+                selectedIndex = Math.floor(((360 - normalizedRotation) % 360) / degreesPerItem);
+                selectedItem = items[selectedIndex];
+                
+                // 결과 표시
+                resultValue.textContent = selectedItem;
+                result.style.display = 'flex';
+                
+                // 폭죽 효과 생성
+                createFireworks();
+                
+                // 휠 다시 그리기 (선택된 항목 하이라이트)
+                generateWheel();
+                
+                isSpinning = false;
+                spinBtn.disabled = false;
+                spinBtn.textContent = '돌려!';
+                
+                // 3초 후에 폭죽 효과 제거
+                setTimeout(clearFireworks, 3000);
+            }, 3000);
+        }
+        
+        // 폭죽 효과 생성 함수
+        function createFireworks() {
+            // 기존 폭죽 효과 제거
+            clearFireworks();
+            
+            // 새로운 폭죽 효과 생성
+            const colors = ['#FFD700', '#FF4500', '#3CB371', '#4169E1', '#9932CC'];
+            
+            for (let i = 0; i < 50; i++) {
+                const spark = document.createElement('div');
+                spark.className = 'spark';
+                spark.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                spark.style.left = `${Math.random() * 100}%`;
+                spark.style.top = `${Math.random() * 100}%`;
+                spark.style.animationDelay = `${Math.random() * 2}s`;
+                
+                fireworks.appendChild(spark);
+            }
+        }
+        
+        // 폭죽 효과 제거 함수
+        function clearFireworks() {
+            fireworks.innerHTML = '';
+        }
+        
+        // 초기 휠 생성
+        generateWheel();
+        
+        // 이벤트 리스너 등록
+        addBtn.addEventListener('click', addItem);
+        deleteBtn.addEventListener('click', deleteItem);
+        spinBtn.addEventListener('click', spinWheel);
+        
+        newItemInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addItem();
+            }
+        });
+        
+        deleteItemInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                deleteItem();
+            }
+        });
+        
+        menuListToggle.addEventListener('click', function() {
+            if (menuListItems.style.display === 'none') {
+                menuListItems.style.display = 'block';
+            } else {
+                menuListItems.style.display = 'none';
+            }
+        });
+        
+        // 화면 크기 변경 이벤트
+        window.addEventListener('resize', generateWheel);
+    </script>
+</body>
+</html>
